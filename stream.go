@@ -52,13 +52,20 @@ type Baton struct {
 func ValidateParse(reader io.Reader, into interface{}, schema *spec.Schema) error {
 	jsonDecoder := json.NewDecoder(reader)
 	jsonDecoder.UseNumber()
-	valueOf := reflect.ValueOf(into).Elem()
+
+	rv := reflect.ValueOf(into)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return &json.InvalidUnmarshalError{
+			Type: reflect.TypeOf(into),
+		}
+	}
+
 	decoder := &Decoder{
 		jsonDecoder: jsonDecoder,
 	}
 	baton := Baton{
 		schema: schema,
-		into:   valueOf,
+		into:   rv.Elem(),
 		path:   []string{},
 	}
 	return decodeAnything(decoder, baton)

@@ -47,10 +47,21 @@ type TestStruct struct {
 	} `json:"child"`
 }
 
+func TestNonPointerError(t *testing.T) {
+	notPointer := TestStruct{}
+	err := ValidateParse(strings.NewReader(`{}`), notPointer, buildSchema(defaultSchema))
+	if err == nil {
+		t.Errorf("Expected Error")
+	}
+	_, ok := err.(*json.InvalidUnmarshalError)
+	if !ok {
+		t.Errorf("Wrong error: %T", err)
+	}
+
+}
+
 func TestParseEmpty(t *testing.T) {
-
 	into := TestStruct{}
-
 	if err := ValidateParse(strings.NewReader(`{}`), &into, buildSchema(defaultSchema)); err != nil {
 		t.Fatal(err.Error())
 	}
