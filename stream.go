@@ -85,6 +85,16 @@ func decodeAnything(decoder *Decoder, baton Baton) error {
 
 	printToken(strings.Join(baton.path, ","), token)
 
+	if !baton.into.IsValid() {
+		return nil
+	}
+
+	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, token == nil)
+	baton.into = into
+
+	_ = jsonUnmarshaller
+	_ = textUnmarshaller
+
 	if tokenVal, ok := token.(json.Delim); ok {
 		switch tokenVal {
 		case '{':
@@ -116,12 +126,7 @@ func decodeValue(decoder *Decoder, baton Baton, token json.Token) error {
 	if err := validate.AgainstSchema(baton.schema, token, strfmt.Default); err != nil {
 		return err
 	}
-
-	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, token == nil)
-
-	_ = jsonUnmarshaller
-	_ = textUnmarshaller
-
+	into := baton.into
 	intoKind := into.Kind()
 
 	switch tokenVal := token.(type) {
@@ -179,11 +184,7 @@ func decodeArray(decoder *Decoder, baton Baton) error {
 		return fmt.Errorf("Not expecting an array")
 	}
 
-	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, false)
-
-	_ = jsonUnmarshaller
-	_ = textUnmarshaller
-
+	into := baton.into
 	itemType := into.Type().Elem()
 
 	fmt.Printf("Item Type for Array: %s\n", itemType.String())
@@ -227,10 +228,7 @@ func decodeObject(decoder *Decoder, baton Baton) error {
 		return fmt.Errorf("Not expecting an object")
 	}
 
-	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, false)
-
-	_ = jsonUnmarshaller
-	_ = textUnmarshaller
+	into := baton.into
 
 	fieldsByTag := map[string]reflect.Value{}
 	backupFieldsByTag := map[string]reflect.Value{}
