@@ -109,6 +109,10 @@ func decodeValue(decoder *Decoder, baton Baton, token json.Token) error {
 		return nil
 	}
 
+	if token == nil {
+		return nil
+	}
+
 	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, token == nil)
 
 	_ = jsonUnmarshaller

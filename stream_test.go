@@ -30,6 +30,12 @@ var defaultSchema = `{
 			"properties": {
 				"foo": { "type": "string" }
 			}
+		},
+		"arr": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
 		}
 	}
 }`
@@ -45,6 +51,8 @@ type TestStruct struct {
 	Child struct {
 		Foo string `json:"foo"`
 	} `json:"child"`
+
+	Arr []string `json:"arr"`
 }
 
 func TestNonPointerError(t *testing.T) {
@@ -99,8 +107,9 @@ func TestParseData(t *testing.T) {
 
 func TestParsePointers(t *testing.T) {
 	into := struct {
-		String  *string  `json:"string"`
-		Float64 *float64 `json:"float64"`
+		Omit      *string `json:"omit"`
+		NullValue *string `json:"nullValue"`
+		SetValue  *string `json:"setValue"`
 
 		Child *struct {
 			Foo string `json:"foo"`
@@ -109,19 +118,36 @@ func TestParsePointers(t *testing.T) {
 
 	if err := ValidateParse(strings.NewReader(`
 		{
-			"float64": 1,
-			"unTagged": true,
+			"nullValue": null,
+			"setValue": "set",
 			"child": {"foo": "bar"}
 		}
-	`), &into, buildSchema(defaultSchema)); err != nil {
+	`), &into, buildSchema(`{
+	"type": "object",
+	"properties": {
+		"nullValue": { "type": "string" },
+		"setValue": { "type": "string" },
+		"omit": { "type": "string" },
+		"child": { 
+			"type": "object",
+			"properties": {
+				"foo": { "type": "string" }
+			}
+		}
+	}
+
+	}`)); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	if into.String != nil {
-		t.Errorf("at string, got %v", into.String)
+	if into.Omit != nil {
+		t.Errorf("at Omit, got %v", into.Omit)
 	}
-	if into.Float64 == nil || *into.Float64 != 1.0 {
-		t.Errorf("at float64, got %v", into.Float64)
+	if into.NullValue != nil {
+		t.Errorf("at Omit, got %v", into.NullValue)
+	}
+	if into.SetValue == nil || *into.SetValue != "set" {
+		t.Errorf("at float64, got %v", into.SetValue)
 	}
 
 	if into.Child.Foo != "bar" {
@@ -203,6 +229,51 @@ func TestArray(t *testing.T) {
 
 	if len(into.Arr) != 2 {
 		t.Fatalf("Got %d items, %v", len(into.Arr), into.Arr)
+	}
+	if into.Arr[0] != "a" || into.Arr[1] != "b" {
+		t.Errorf("Wrong Values: %v", into.Arr)
+	}
+
+}
+
+func TestArrayPointer(t *testing.T) {
+
+	into := struct {
+		Arr []*string
+	}{}
+
+	err := ValidateParse(strings.NewReader(`
+	{
+		"arr": ["a", null, "b"]
+	}
+	`), &into, buildSchema(`{
+		"type": "object",
+		"properties": {
+			"arr": {
+				"type": "array",
+				"items": {
+					"type": "string"
+				}
+			}
+		}
+	}`))
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if len(into.Arr) != 3 {
+		t.Fatalf("Got %d items, %v", len(into.Arr), into.Arr)
+	}
+
+	if into.Arr[0] == nil || *into.Arr[0] != "a" {
+		t.Errorf("Wrong Values: %v", into.Arr)
+	}
+	if into.Arr[2] == nil || *into.Arr[2] != "b" {
+		t.Errorf("Wrong Values: %v", into.Arr)
+	}
+	if into.Arr[1] != nil {
+		t.Errorf("Should be null at 1: %v", into.Arr)
 	}
 
 }
