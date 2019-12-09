@@ -202,7 +202,6 @@ func TestInvalidData(t *testing.T) {
 }
 
 func TestArray(t *testing.T) {
-
 	into := struct {
 		Arr []string
 	}{}
@@ -237,7 +236,6 @@ func TestArray(t *testing.T) {
 }
 
 func TestArrayPointer(t *testing.T) {
-
 	into := struct {
 		Arr []*string
 	}{}
@@ -274,6 +272,53 @@ func TestArrayPointer(t *testing.T) {
 	}
 	if into.Arr[1] != nil {
 		t.Errorf("Should be null at 1: %v", into.Arr)
+	}
+
+}
+
+func TestPointerToArray(t *testing.T) {
+	into := struct {
+		Arr    *[]string
+		NilArr *[]string
+	}{}
+
+	err := ValidateParse(strings.NewReader(`
+	{
+		"arr": ["a", "b"],
+		"nilArr": null
+	}
+	`), &into, buildSchema(`{
+		"type": "object",
+		"properties": {
+			"arr": {
+				"type": "array",
+				"items": {
+					"type": "string"
+				}
+			},
+			"nilArr": {
+				"type": "array",
+				"items": {
+					"type": "string"
+				}
+			}
+		}
+	}`))
+
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if into.Arr == nil {
+		t.Fatalf("Got Nil")
+	} else {
+		arr := *into.Arr
+		if len(arr) != 2 {
+			t.Fatalf("Got %d items, %v", len(arr), arr)
+		}
+		if arr[0] != "a" || arr[1] != "b" {
+			t.Errorf("Wrong Values: %v", arr)
+		}
 	}
 
 }

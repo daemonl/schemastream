@@ -113,18 +113,16 @@ func decodeValue(decoder *Decoder, baton Baton, token json.Token) error {
 		return nil
 	}
 
+	if err := validate.AgainstSchema(baton.schema, token, strfmt.Default); err != nil {
+		return err
+	}
+
 	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, token == nil)
 
 	_ = jsonUnmarshaller
 	_ = textUnmarshaller
 
 	intoKind := into.Kind()
-
-	fmt.Printf("Decode %v into %v -> %s\n", token, intoKind.String(), baton.schema.Type)
-
-	if err := validate.AgainstSchema(baton.schema, token, strfmt.Default); err != nil {
-		return err
-	}
 
 	switch tokenVal := token.(type) {
 
@@ -181,10 +179,16 @@ func decodeArray(decoder *Decoder, baton Baton) error {
 		return fmt.Errorf("Not expecting an array")
 	}
 
-	itemType := baton.into.Type().Elem()
+	jsonUnmarshaller, textUnmarshaller, into := indirect(baton.into, false)
+
+	_ = jsonUnmarshaller
+	_ = textUnmarshaller
+
+	itemType := into.Type().Elem()
+
 	fmt.Printf("Item Type for Array: %s\n", itemType.String())
 
-	arrayValue := baton.into
+	arrayValue := into
 	idx := 0
 	for {
 		// Don't consume the token
@@ -193,7 +197,7 @@ func decodeArray(decoder *Decoder, baton Baton) error {
 			return err
 		}
 		if keyToken == json.Delim(']') {
-			baton.into.Set(arrayValue)
+			into.Set(arrayValue)
 			// discard Next
 			decoder.Token()
 			return nil
