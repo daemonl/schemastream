@@ -97,6 +97,39 @@ func TestParseData(t *testing.T) {
 	}
 }
 
+func TestParsePointers(t *testing.T) {
+	into := struct {
+		String  *string  `json:"string"`
+		Float64 *float64 `json:"float64"`
+
+		Child *struct {
+			Foo string `json:"foo"`
+		} `json:"child"`
+	}{}
+
+	if err := ValidateParse(strings.NewReader(`
+		{
+			"float64": 1,
+			"unTagged": true,
+			"child": {"foo": "bar"}
+		}
+	`), &into, buildSchema(defaultSchema)); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if into.String != nil {
+		t.Errorf("at string, got %v", into.String)
+	}
+	if into.Float64 == nil || *into.Float64 != 1.0 {
+		t.Errorf("at float64, got %v", into.Float64)
+	}
+
+	if into.Child.Foo != "bar" {
+		t.Errorf("At child.foo, got %s", into.Child.Foo)
+	}
+
+}
+
 func TestSkipMissingAllowed(t *testing.T) {
 	into := TestStruct{}
 	schema := buildSchema(defaultSchema)
